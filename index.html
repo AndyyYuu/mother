@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>礼物盒3D模型动画</title>
     <style>
         body { 
@@ -108,7 +108,7 @@
         // 加载礼物盒模型
         const loader = new GLTFLoader();
         const modelUrl = 'gift2.glb';
-        const balloonUrl = 'balloon.glb';
+        const balloonUrl = 'balloon3.glb';
         
         let mixer; // 动画混合器
         let giftBox; // 模型引用
@@ -246,14 +246,26 @@
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
             
-            // 监听点击事件
-            window.addEventListener('click', function(event) {
-                // 如果动画正在播放或已经点击过，不响应点击
+            // 处理点击/触摸事件
+            function handleInteraction(event) {
+                // 如果动画正在播放或已经点击过，不响应
                 if (isAnimationPlaying || hasBeenClicked) return;
                 
-                // 计算鼠标位置
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                // 获取触摸/点击位置
+                let clientX, clientY;
+                if (event.touches) {
+                    // 触摸事件
+                    clientX = event.touches[0].clientX;
+                    clientY = event.touches[0].clientY;
+                } else {
+                    // 鼠标点击事件
+                    clientX = event.clientX;
+                    clientY = event.clientY;
+                }
+                
+                // 计算位置
+                mouse.x = (clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(clientY / window.innerHeight) * 2 + 1;
                 
                 // 设置射线
                 raycaster.setFromCamera(mouse, camera);
@@ -262,14 +274,30 @@
                 const intersects = raycaster.intersectObject(giftBox, true);
                 
                 if (intersects.length > 0) {
-                    console.log("点击了模型");
+                    console.log("点击/触摸了模型");
                     hasBeenClicked = true; // 标记模型已被点击
                     playAnimation();
                     // 更新提示文本
                     document.getElementById('instructions').textContent = '嘻嘻嘻，母亲节快乐呀妈妈！';
                 }
-            });
+            }
+            
+            // 添加点击事件监听
+            window.addEventListener('click', handleInteraction);
+            
+            // 添加触摸事件监听
+            window.addEventListener('touchstart', function(event) {
+                event.preventDefault(); // 防止触摸事件触发其他默认行为
+                handleInteraction(event);
+            }, { passive: false });
         }
+        
+        // 添加触摸事件处理，防止页面缩放
+        document.addEventListener('touchmove', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault(); // 防止多点触控缩放
+            }
+        }, { passive: false });
         
         // 播放动画
         function playAnimation() {
@@ -293,7 +321,7 @@
                     isAnimationPlaying = false;
                     controls.autoRotate = false;
                     
-                    // 礼物盒动画完成后，显示气球（不播放动画）
+                    // 礼物盒动画完成后，显示气球并播放动画
                     if (balloon) {
                         // 获取礼物盒的中心位置
                         const box = new THREE.Box3().setFromObject(giftBox);
@@ -301,17 +329,23 @@
                         
                         // 设置气球位置在礼物盒中心
                         balloon.position.copy(center);
-                        balloon.position.y -= 50; // 向下移动3单位（约300px）
+                        balloon.position.y -= 50;
                         balloon.visible = true;
-                        balloon.rotation.set(0, 0, 0);
                         
-                        // 如果有动画，但不播放
+                        // 顺时针旋转90度（绕Y轴旋转）
+                        balloon.rotation.y = (-Math.PI /2) ; // 90度 = π/2 弧度
+                        
+                        // 播放气球动画
                         if (balloonMixer && balloonAnimations.length > 0) {
                             const balloonAction = balloonMixer.clipAction(balloonAnimations[0]);
-                            balloonAction.stop(); // 停止任何正在播放的动画
+                            balloonAction.setLoop(THREE.LoopOnce);
+                            balloonAction.clampWhenFinished = true;
+                            balloonAction.reset();
+                            balloonAction.play();
                         }
                     }
-                    // 新增：显示并初始化balloon2
+                    
+                    // 显示并初始化balloon2
                     if (balloon2) {
                         // 获取礼物盒的中心位置
                         const box = new THREE.Box3().setFromObject(giftBox);
@@ -330,7 +364,7 @@
                 setTimeout(() => {
                     controls.autoRotate = false;
                     
-                    // 礼物盒动画完成后，显示气球（不播放动画）
+                    // 礼物盒动画完成后，显示气球并播放动画
                     if (balloon) {
                         // 获取礼物盒的中心位置
                         const box = new THREE.Box3().setFromObject(giftBox);
@@ -338,15 +372,28 @@
                         
                         // 设置气球位置在礼物盒中心
                         balloon.position.copy(center);
-                        balloon.position.y -= 3; // 向下移动3单位（约300px）
+                        balloon.position.y -= 50;
                         balloon.visible = true;
-                        balloon.rotation.set(0, 0, 0);
                         
-                        // 如果有动画，但不播放
+                        // 播放气球动画
                         if (balloonMixer && balloonAnimations.length > 0) {
                             const balloonAction = balloonMixer.clipAction(balloonAnimations[0]);
-                            balloonAction.stop(); // 停止任何正在播放的动画
+                            balloonAction.setLoop(THREE.LoopOnce);
+                            balloonAction.clampWhenFinished = true;
+                            balloonAction.reset();
+                            balloonAction.play();
                         }
+                    }
+                    
+                    // 显示并初始化balloon2
+                    if (balloon2) {
+                        // 获取礼物盒的中心位置
+                        const box = new THREE.Box3().setFromObject(giftBox);
+                        const center = box.getCenter(new THREE.Vector3());
+                        balloon2.position.copy(center);
+                        balloon2.position.y -= 60; // 向下移动3单位（约300px）
+                        balloon2.visible = true;
+                        balloon2IsRising = true;
                     }
                 }, 3000);
             }
@@ -370,9 +417,14 @@
                 mixer.update(delta);
             }
             
+            // 更新气球动画混合器
+            if (balloonMixer) {
+                balloonMixer.update(delta);
+            }
+            
             // balloon2上升动画
             if (balloon2 && balloon2IsRising) {
-                balloon2.position.y += delta * 5; // 上升速度，可调整
+                balloon2.position.y += delta * 5;
                 if (balloon2.position.y >= balloon2TopY) {
                     balloon2.position.y = balloon2TopY;
                     balloon2IsRising = false;
